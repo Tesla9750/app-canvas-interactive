@@ -17,56 +17,56 @@ canvas.style.background = "#E4D5F3";
 
 // Define una clase para representar círculos
 class Circle {
-    constructor(x, y, radius, color, text, speed) {
+    constructor(x, y, radius, color, textColor, text, speed) {
         this.posX = x; // Posición x del centro del círculo
         this.posY = y; // Posición y del centro del círculo
         this.radius = radius; // Radio del círculo
         this.color = color; // Color del círculo
+        this.textColor = textColor; // Color del texto
         this.text = text; // Texto a mostrar en el centro del círculo
         this.speed = speed; // Velocidad de movimiento del círculo en píxeles por fotograma
 
         // Velocidad de desplazamiento en los ejes x e y
-        this.dx = 1 * this.speed;
-        this.dy = 1 * this.speed;
+        this.dx = 0;
+        this.dy = -1 * this.speed; // Hacia arriba
+
+        // Atributo para marcar si el círculo debe ser eliminado
+        this.shouldBeRemoved = false;
     }
 
     // Método para dibujar el círculo en el canvas
     draw(context) {
         context.beginPath();
 
-        context.strokeStyle = this.color; // Establece el color del trazo del círculo
-        context.textAlign = "center"; // Alinea el texto en el centro horizontalmente
-        context.textBaseline = "middle"; // Alinea el texto en el centro verticalmente
-        context.font = "20px Arial"; // Establece la fuente y tamaño del texto
-        context.fillText(this.text, this.posX, this.posY); // Dibuja el texto en el centro del círculo
+        context.fillStyle = this.color; // Establece el color de relleno del círculo
+        context.arc(this.posX, this.posY, this.radius, 0, Math.PI * 2, false);
+        context.fill(); // Aplica el relleno al círculo en lugar del trazo
 
-        context.lineWidth = 3; // Establece el grosor del trazo
-        context.arc(this.posX, this.posY, this.radius, 0, Math.PI * 2, false); // Dibuja el círculo
-        context.stroke(); // Aplica el trazo al círculo
-        context.closePath(); // Finaliza el trazo
+        // Dibuja el texto con el color especificado
+        context.fillStyle = this.textColor;
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.font = "20px Arial";
+        context.fillText(this.text, this.posX, this.posY);
+
+        context.closePath();
     }
-    
 
     // Método para actualizar la posición del círculo
     update(context) {
         this.draw(context); // Dibuja el círculo en su nueva posición
 
-        // Si el círculo alcanza los límites del canvas en los ejes x, invierte su dirección
-        if ((this.posX + this.radius) > window_width || (this.posX - this.radius) < 0) {
-            this.dx = -this.dx;
-        }
-
-        // Si el círculo alcanza los límites del canvas en los ejes y, invierte su dirección
-        if ((this.posY - this.radius) < 0 || (this.posY + this.radius) > window_height) {
-            this.dy = -this.dy;
+        // Si el círculo alcanza los límites del canvas en los ejes y, marca que debe ser eliminado
+        if (this.posY - this.radius <= 0) {
+            this.shouldBeRemoved = true;
         }
 
         // Actualiza las coordenadas del centro del círculo
         this.posX += this.dx;
         this.posY += this.dy;
     }
-    
 }
+
 
 // Función para calcular la distancia entre dos puntos en el plano cartesiano
 function getDistance(posx1, posy1, posx2, posy2) {
@@ -86,8 +86,8 @@ for (let i = 0; i < NumeroCirculos; i++) {
         // Genera valores aleatorios para la posición, radio y velocidad de cada círculo
         let randomRadius = Math.floor(Math.random() * 60 + 35);
         let randomX = Math.random() * (window_width - 2 * randomRadius) + randomRadius;
-        let randomY = Math.random() * (window_height - 2 * randomRadius) + randomRadius;
-        let randomSpeed = Math.floor(Math.random() * 8) + 1;
+        let randomY = window_height + randomRadius; // Comienza desde la parte inferior del canvas
+        let randomSpeed = Math.floor(Math.random() * 6) + 1;
 
         let VerificacionCreacion = true;
         // Verifica si el nuevo círculo está demasiado cerca de los círculos existentes
@@ -99,7 +99,19 @@ for (let i = 0; i < NumeroCirculos; i++) {
         }
         // Si el nuevo círculo no está demasiado cerca de los círculos existentes, lo crea y lo agrega al arreglo
         if (VerificacionCreacion) {
-            let miCirculo = new Circle(randomX, randomY, randomRadius, "blue", i + 1, randomSpeed);
+
+            function getRandomColor() {
+                // Genera un componente de color aleatorio en formato hexadecimal (de 0 a 255)
+                const randomComponent = () => Math.floor(Math.random() * 256).toString(16).padStart(2, '0');
+                
+                // Concatena los componentes de color aleatorios para formar el color hexadecimal
+                return `#${randomComponent()}${randomComponent()}${randomComponent()}`;
+            }
+            const colorRandom = getRandomColor(); // Obtiene un color aleatorio
+
+            
+            let miCirculo = new Circle(randomX, randomY, randomRadius, colorRandom, "black", (i + 1).toString(), randomSpeed);
+
             ArregloCirculos.push(miCirculo);
             CirculoCreado = true;
         }
@@ -115,25 +127,27 @@ function updateCircle() {
         circle.update(ctx);
     });
 
-    // Detección de colisiones entre los círculos
-    for (let i = 0; i < ArregloCirculos.length; i++) {
-        for (let j = i + 1; j < ArregloCirculos.length; j++) {
-            // Si dos círculos están lo suficientemente cerca, cambia su color a uno aleatorio y hace que reboten
-            if (getDistance(ArregloCirculos[i].posX, ArregloCirculos[i].posY, ArregloCirculos[j].posX, ArregloCirculos[j].posY) < (ArregloCirculos[i].radius + ArregloCirculos[j].radius)) {
-                let ColorAleatorio = '#' + Math.floor(Math.random() * 16777215).toString(16); // Genera color aleatorio
-                ArregloCirculos[i].color = ColorAleatorio;
-                ArregloCirculos[j].color = ColorAleatorio;
-    
-                // Invierte la dirección de los círculos
-                ArregloCirculos[i].dx = -ArregloCirculos[i].dx;
-                ArregloCirculos[i].dy = -ArregloCirculos[i].dy;
-                ArregloCirculos[j].dx = -ArregloCirculos[j].dx;
-                ArregloCirculos[j].dy = -ArregloCirculos[j].dy;
-            }
-        }
-    }
+    // Filtra los círculos que deben ser eliminados
+    ArregloCirculos = ArregloCirculos.filter(circle => !circle.shouldBeRemoved);
 
     requestAnimationFrame(updateCircle); // Llama a la función de actualización nuevamente para el siguiente fotograma
 }
+
+// Agregar el evento de clic para eliminar círculos
+canvas.addEventListener('click', function (event) {
+    const mouseX = event.clientX;
+    const mouseY = event.clientY;
+
+    // Verifica si el clic está dentro de algún círculo
+    for (let i = 0; i < ArregloCirculos.length; i++) {
+        const circle = ArregloCirculos[i];
+        const distanceFromCenter = getDistance(mouseX, mouseY, circle.posX, circle.posY);
+        // Si el clic está dentro del círculo, marca que debe ser eliminado
+        if (distanceFromCenter <= circle.radius) {
+            circle.shouldBeRemoved = true;
+            break; // Sale del bucle una vez que se marca el círculo para eliminación
+        }
+    }
+});
 
 updateCircle(); // Llama a la función de actualización inicialmente para iniciar la animación
